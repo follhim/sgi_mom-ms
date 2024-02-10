@@ -6,8 +6,6 @@ website:
   title: "Demo site"
   navbar:
     left:
-      - href: MOM_manuscript.qmd
-        text: Home
       - href: MOM_Religiosity_MS.qmd
         text: More
       
