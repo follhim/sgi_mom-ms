@@ -11,5 +11,7 @@ website:
       - MOM_manuscript.qmd
       - MOM_Religiosity_MS.qmd
       
-format: html
+format: 
+  html:
+    toc: true
       
