@@ -51,7 +51,6 @@ data$q0006[12] <- 2016
 # Made the years numeric, and not characters. 
 data$q0006 <- as.numeric(data$q0006)
 data <- subset(data, !is.na(q0004))
-data <- data[, -(182:222)]
 
 # Convert the character strings to POSIXct (datetime) objects
 data$Start_Time <- as.POSIXct(data$StartDate, format = "%m/%d/%Y %I:%M:%S %p")
@@ -117,19 +116,7 @@ data <- rename(data,
                sexbeh_10 = q0013_0010,
                sexbeh_11 = q0013_0011,
                sexbeh_12 = q0013_0012,
-               add_note = q0014,
-               attbel_1,
-               attbel_2,
-               attbel_3,
-               attbel_4,
-               attbel_5,
-               attbel_6,
-               attbel_7,
-               attbel_8,
-               attbel_9,
-               attbel_10,
-               attbel_11,
-               attbel_12)
+               add_note = q0014)
 
 data <- subset(data, gender != 3)
 ```
@@ -140,9 +127,9 @@ Create demographic table
 library(gtsummary)
 
 # summarize the data with our package
-table1 <- 
-  data %>%
-  tbl_summary(include = c(age, sexori, gender, race, education, employment, income, rel_affiliation, spouse_so))
+# table1 <- 
+  # data %>%
+  # tbl_summary(include = c(age, sexori, gender, race, education, employment, income, rel_affiliation, spouse_so))
 ```
 
 ## Reverse Score Variables
@@ -228,8 +215,8 @@ data$osa <- ifelse(data$gender == 1, data$eros_gyno, data$eros_andro)
 
 ```{r}
 # Create Subset
-ssa_data <- subset(data, (sexori == 2 | sexori == 3 | sexori == 4) & (gender == 1 | gender == 2))
-osa_data <- subset(data, (sexori == 1) & (gender == 1 | gender == 2))
+# ssa_data <- subset(data, (sexori == 2 | sexori == 3 | sexori == 4) & (gender == 1 | gender == 2))
+# osa_data <- subset(data, (sexori == 1) & (gender == 1 | gender == 2))
 ```
 
 ```{r}
