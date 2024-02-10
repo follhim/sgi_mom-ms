@@ -38,7 +38,7 @@ library(rempsyc)
 
 ```{r}
 # Load dataset
-org_data <- read_sav("Mixed Orientation Marriages 2018 copy.sav")
+org_data <- read_sav("Mixed Orientation Marriages 2018.sav")
 data <- org_data
 
 # Remove the 16th and 28th observation from the data frame because it's flawwed.
