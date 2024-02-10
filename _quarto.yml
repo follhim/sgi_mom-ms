@@ -1,0 +1,13 @@
+project:
+  type: website
+  output-dir: docs
+  
+website:
+  title: "Demo site"
+  navbar:
+    left:
+      - href: MOM_manuscript.qmd
+        text: Home
+      - MOM_Religiosity_MS.qmd
+        text: More
+      

@@ -1,0 +1,253 @@
+---
+title: "Mom Manuscript"
+format:
+  html:
+    toc: true
+    toc-depth: 6
+    toc-location: left
+eMeantor: visual
+code-fold: true
+code-summary: "Show the code"
+---
+
+```{r}
+#| include=FALSE
+library(tidyverse)
+library(haven)
+library(readr)
+library(foreign)
+library(dplyr)
+library(corrr)
+library(psych)
+library(sjlabelled)
+library(corrgram)
+library(dplyr)
+library(kableExtra)
+library(pander)
+library(car)
+library(knitr)
+library(broom)
+library(careless)
+library(haven)
+library(mice)
+library(corx)
+library(papaja)
+library(stargazer)
+library(rempsyc)
+```
+
+```{r}
+# Load dataset
+org_data <- read_sav("Mixed Orientation Marriages 2018 copy.sav")
+data <- org_data
+
+# Remove the 16th and 28th observation from the data frame because it's flawwed.
+data <- org_data[-16, ]
+data <- data[-28, ]
+
+# Obv. 4 had two years, the most recent one was selected. 
+data$q0006[8] <- 2018
+data$q0006[12] <- 2016
+# Made the years numeric, and not characters. 
+data$q0006 <- as.numeric(data$q0006)
+data <- subset(data, !is.na(q0004))
+data <- data[, -(182:222)]
+
+# Convert the character strings to POSIXct (datetime) objects
+data$Start_Time <- as.POSIXct(data$StartDate, format = "%m/%d/%Y %I:%M:%S %p")
+data$End_Time <- as.POSIXct(data$EndDate, format = "%m/%d/%Y %I:%M:%S %p")
+
+# Now you can perform operations on these datetime variables or create a new one based on them
+data$Duration <- data$End_Time - data$Start_Time
+
+data <- data[data$Duration >= 10, ]
+data <- data[data$q0004 != 5, ]
+data <- data[data$q0002 != 3, ]
+```
+
+## Data Cleaning
+
+```{r}
+# Renaming Variables
+data <- rename(data, 
+               # Gyno
+               eros_g1 = q0026_0001, eros_g2 = q0027_0001, eros_g3 = q0028_0001, eros_g4 = q0029_0001, eros_g5 = q0030_0001, eros_g6 = q0031_0001, eros_g7 = q0032_0001, eros_g8 = q0033_0001, 
+               # Andro
+               eros_a1 = q0034_0001, eros_a2 = q0035_0001, eros_a3 = q0036_0001, eros_a4 = q0037_0001, eros_a5 = q0038_0001, eros_a6 = q0039_0001, eros_a7 = q0040_0001, eros_a8 = q0041_0001,
+               # Depression
+               dass_d1 = q0122_0001, dass_d2 = q0124_0001, dass_d3 = q0129_0001, dass_d4 = q0132_0001, dass_d5 = q0135_0001, dass_d6 = q0136_0001, dass_d7 = q0140_0001,
+               # Anxiety
+               dass_a1 = q0121_0001, dass_a2 = q0123_0001, dass_a3 = q0126_0001, dass_a4 = q0128_0001, dass_a5 = q0134_0001, dass_a6 = q0138_0001, dass_a7 = q0139_0001, 
+               # Stress
+               dass_s1 = q0120_0001, dass_s2 = q0125_0001, dass_s3 = q0127_0001, dass_s4 = q0130_0001, dass_s5 = q0131_0001, dass_s6 = q0133_0001, dass_s7 = q0137_0001,
+               # Growth
+               pwb_g1 = q0084_0001, pwb_g2 = q0085_0001, pwb_g3 = q0086_0001, pwb_g4 = q0087_0001, pwb_g5 = q0088_0001, pwb_g6 = q0089_0001, pwb_g7 = q0090_0001, pwb_g8 = q0091_0001, pwb_g9 = q0092_0001,
+               # Purpose in Life
+               pwb_p1 = q0093_0001, pwb_p2 = q0094_0001, pwb_p3 = q0095_0001, pwb_p4 = q0096_0001, pwb_p5 = q0097_0001, pwb_p6 = q0098_0001, pwb_p7 = q0099_0001, pwb_p8 = q0100_0001, pwb_p9 = q0101_0001, 
+               # Self Acceptance
+               pwb_a1 = q0102_0001, pwb_a2 = q0103_0001, pwb_a3 = q0104_0001, pwb_a4 = q0105_0001, pwb_a5 = q0106_0001, pwb_a6 = q0107_0001, pwb_a7 = q0108_0001, pwb_a8 = q0109_0001, pwb_a9 = q0110_0001,
+               # DUREL
+               durel_1 = q0141_0001, durel_2 = q0142_0001, durel_3 = q0143_0001, durel_4 = q0144_0001, durel_5 = q0145_0001, durel_6 = q0146_0001, durel_7 = q0147_0001, durel_8 = q0148_0001, durel_9 = q0149_0001, durel_10 = q0150_0001,
+               # Relational Closeness
+               rel_1 = q0151_0001, rel_2 = q0152_0001, rel_3 = q0153_0001, rel_4 = q0154_0001, rel_5 = q0155_0001, rel_6 = q0156_0001, rel_7 = q0157_0001, rel_8 = q0158_0001, rel_9 = q0159_0001,
+               # Extra Demographic Variables
+               age = q0001,
+               sex_att = q0011, 
+               gender = q0002,
+               race = q0003,
+               race_other = q0003_other,
+               marriage_status = q0004,
+               marriage_rate = q0005,
+               marriage_year = q0006,
+               education = q0007,
+               employment = q0008,
+               income = q0009,
+               religion = q0010,
+               rel_other = q0010_other,
+               spouse_sex_att = q0012,
+               sexbeh_1 = q0013_0001,
+               sexbeh_2 = q0013_0002,
+               sexbeh_3 = q0013_0003,
+               sexbeh_4 = q0013_0004,
+               sexbeh_5 = q0013_0005,
+               sexbeh_6 = q0013_0006,
+               sexbeh_7 = q0013_0007,
+               sexbeh_8 = q0013_0008,
+               sexbeh_9 = q0013_0009,
+               sexbeh_10 = q0013_0010,
+               sexbeh_11 = q0013_0011,
+               sexbeh_12 = q0013_0012,
+               add_note = q0014,
+               attbel_1,
+               attbel_2,
+               attbel_3,
+               attbel_4,
+               attbel_5,
+               attbel_6,
+               attbel_7,
+               attbel_8,
+               attbel_9,
+               attbel_10,
+               attbel_11,
+               attbel_12)
+
+data <- subset(data, gender != 3)
+```
+
+Create demographic table
+
+```{r}
+library(gtsummary)
+
+# summarize the data with our package
+table1 <- 
+  data %>%
+  tbl_summary(include = c(age, sexori, gender, race, education, employment, income, rel_affiliation, spouse_so))
+```
+
+## Reverse Score Variables
+
+```{r}
+# PWB - Growth
+vars_to_reverse <- c("pwb_g1", "pwb_g2", "pwb_g4", "pwb_g6", "pwb_g8", "pwb_g9") # Add the names of variables to reverse
+data <- data %>%
+  mutate(across(all_of(vars_to_reverse), ~ 7 - .))
+# Purpose
+vars_to_reverse <- c("pwb_p1", "pwb_p2", "pwb_p3", "pwb_p4", "pwb_p5", "pwb_p9") # Add the names of variables to reverse
+data <- data %>%
+  mutate(across(all_of(vars_to_reverse), ~ 7 - .))
+# Acceptance
+vars_to_reverse <- c("pwb_a3", "pwb_a6", "pwb_a7") # Add the names of variables to reverse
+data <- data %>%
+  mutate(across(all_of(vars_to_reverse), ~ 7 - .))
+```
+
+## Score Variables
+
+```{r}
+# eros-Gyno Subscale
+data$eros_gyno <- rowSums(data[, 48:55])
+# eros-Andro Subscale
+data$eros_andro <- rowSums(data[, 56:63])
+# DASS
+## Depression
+data$dass_dep <- rowSums(data[, c("dass_d1", "dass_d2", "dass_d3", "dass_d4", "dass_d5", "dass_d6", "dass_d7")], na.rm = TRUE)
+# Aniety
+data$dass_anx <- rowSums(data[, c("dass_a1", "dass_a2", "dass_a3", "dass_a4", "dass_a5", "dass_a6", "dass_a7")], na.rm = TRUE)
+# Stress
+data$dass_str <- rowSums(data[, c("dass_s1", "dass_s2", "dass_s3", "dass_s4", "dass_s5", "dass_s6", "dass_s7")], na.rm = TRUE)
+
+# PWB
+# Growth
+data$pwb_gro <- rowSums(data[, 106:114])
+# Purpose in LIfe
+data$pwb_pur <- rowSums(data[, 115:123])
+# Acceptance
+data$pwb_acc <- rowSums(data[, 124:132])
+
+# DUREL
+data$durel <- rowSums(data[, 163:172])
+# Relational
+data$relational <- rowSums(data[, 173:181])
+```
+
+```{r}
+# Create variable ssa and osa based on reported gender and sexual orientation
+data$ssa <- ifelse(data$gender == 1, data$eros_andro, data$eros_gyno)
+data$osa <- ifelse(data$gender == 1, data$eros_gyno, data$eros_andro)
+```
+
+## Median Imputation of Missing Responses
+
+```{r}
+# Median Imputation
+# # Create subset data set again
+# ssa_data <- subset(data, (sexori == 2 | sexori == 3 | sexori == 4) & (gender == 1 | gender == 2))
+# osa_data <- subset(data, (sexori == 1) & (gender == 1 | gender == 2))
+# 
+# # Create separate data based on sexual orientation
+# 
+# ssa_data <- ssa_data %>%
+#   mutate(across(where(is.numeric), ~replace_na(., median(., na.rm=TRUE))))
+# 
+# osa_data <- osa_data %>%
+#   mutate(across(where(is.numeric), ~replace_na(., median(., na.rm=TRUE))))
+# 
+# # First, remove the rows in main_data that are also in subset_data
+# data <- anti_join(data, ssa_data, by = "RespondentID")
+# 
+# # Then, bind the rows from subset_data to the updated main_data
+# data <- bind_rows(data, ssa_data)
+# 
+# # First, remove the rows in main_data that are also in subset_data
+# data <- anti_join(data, osa_data, by = "RespondentID")
+# 
+# # Then, bind the rows from subset_data to the updated main_data
+# data <- bind_rows(data, osa_data)
+```
+
+```{r}
+# Create Subset
+ssa_data <- subset(data, (sexori == 2 | sexori == 3 | sexori == 4) & (gender == 1 | gender == 2))
+osa_data <- subset(data, (sexori == 1) & (gender == 1 | gender == 2))
+```
+
+```{r}
+# # SSA
+# library(apaTables)
+# selected_vars <- c("ssa", "osa", "dass_dep", "dass_anx", "dass_str", "pwb_gro", "pwb_pur", "pwb_acc", "durel", "relational")
+# ssa.cor.data <- subset(ssa_data, select = selected_vars)
+# 
+# apa.cor.table(ssa.cor.data, filename = "time-clean.ssa.cor.table.doc")
+```
+
+```{r}
+# For reference
+# missing_proportions_per_column <- apply(ssa_data, 2, function(x) sum(is.na(x)) / length(x))
+# max_missing_proportions <- max(missing_proportions_per_column)
+# variables_with_most_missing <- names(missing_proportions_per_column[missing_proportions_per_column == max_missing_proportions])
+# print(variables_with_most_missing)
+# sorted_missing_proportions <- sort(missing_proportions_per_column, decreasing = TRUE)
+# print(sorted_missing_proportions)
+# which(names(ssa_data) == "my_variable")
+```

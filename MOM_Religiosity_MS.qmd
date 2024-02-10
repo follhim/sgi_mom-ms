@@ -1,0 +1,130 @@
+---
+title: "MOM-2018: Highly v. Less Religious LGB"
+format: 
+  html:
+    toc: true
+    toc-depth: 6
+    toc-location: left
+editor: visual
+number-sections: true
+code-fold: true
+code-summary: "Show the code"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| include=FALSE
+library(semTools)
+library(car)
+library(moments)
+library(EFAutilities)
+library(EFAtools)
+library(tidyverse)
+library(readr)
+library(haven)
+library(data.table)
+library(psych)
+library(knitr)
+library(Hmisc)
+library(corrplot)
+library(reshape2)
+library(mediation)
+library(moderndive)
+library(lavaan)
+library(kableExtra)
+library(ltm)
+library(QuantPsyc)
+library(reghelper)
+library(ggeffects)
+library(apaTables)
+library(interactions)
+library(gt)
+library(gtsummary)
+library(lmtest)
+library(semTools)
+library(flextable)
+library(officer)
+library(apaTables)
+library(sjlabelled)
+```
+
+```{r}
+# Load dataset
+org_data <- read_sav("mom_2018.sav")
+data <- org_data[org_data$sex_att %in% c(2, 3),]
+lgb_data <- subset(data, religion != 16)
+lgb_data <- copy_labels(lgb_data, data)
+
+# Split to Highly v. Less Religious LGB based on Median Split
+lgb_data$religiousness <- ifelse(lgb_data$DUREL_IRr >= 14, "Highly Religious", "Less Religious")
+```
+
+```{r}
+# Demographics
+# summarize the data with our package
+selected_vars <- c("gender", "race", "education", "religion", "sex_att", "religiousness")
+dem_data <- subset(lgb_data, select = selected_vars)
+
+# Factor to see labels
+dem_data$gender <- haven::as_factor(lgb_data$gender)
+dem_data$race <- haven::as_factor(lgb_data$race)
+dem_data$education <- haven::as_factor(lgb_data$education)
+dem_data$religion <- haven::as_factor(lgb_data$religion)
+dem_data$sex_att <- haven::as_factor(lgb_data$sex_att)
+
+# Create Demographic table
+table1 <- 
+  dem_data %>%
+  tbl_summary(
+    include = c(gender, race, education, religion, sex_att, religiousness),
+    label = list(gender ~ "Gender", race ~ "Race", education ~ "Education", religion ~ "Religion", sex_att ~ "Sexual Orientation", religiousness ~ "Religiosity"),
+  missing = "no") %>%
+  modify_header(label = "") %>%
+  modify_caption("*Demographic Information* (N = {N})")
+table1
+table1 %>%
+  as_flex_table() %>%
+  flextable::save_as_docx(table1, path = "MOM-2018_dem_table.docx")
+
+data$age <- as.numeric(data$age)
+psych::describe(data$age)
+```
+
+```{r}
+# DF for just LGB and Heterosexuals
+high.lgb.data <- lgb_data[lgb_data$religiousness == "Highly Religious", ]
+low.lgb.data <- lgb_data[lgb_data$religiousness == "Less Religious", ]
+
+t.test(high.lgb.data$SSAr, low.lgb.data$SSAr)
+t.test(high.lgb.data$OSAr, low.lgb.data$OSAr)
+t.test(high.lgb.data$OSAr, low.lgb.data$OSAr) # not significant
+t.test(high.lgb.data$DASS_Dr, low.lgb.data$DASS_Dr)
+t.test(high.lgb.data$DASS_Ar, low.lgb.data$DASS_Ar)
+t.test(high.lgb.data$DASS_Sr, low.lgb.data$DASS_Sr)
+t.test(high.lgb.data$ECR_ANXm, low.lgb.data$ECR_ANXm)
+t.test(high.lgb.data$ECR_AVDm, low.lgb.data$ECR_AVDm)
+t.test(high.lgb.data$ATT_Br, low.lgb.data$ATT_Br) # not significant
+t.test(high.lgb.data$ATT_Cr, low.lgb.data$ATT_Cr) # not significant
+t.test(high.lgb.data$SUPPORT_Gr, low.lgb.data$SUPPORT_Gr)
+t.test(high.lgb.data$SUPPORT_Sr, low.lgb.data$SUPPORT_Sr)
+t.test(high.lgb.data$PWB_Ar, low.lgb.data$PWB_Ar)
+t.test(high.lgb.data$PWB_Gr, low.lgb.data$PWB_Gr)
+t.test(high.lgb.data$PWB_Pr, low.lgb.data$PWB_Pr)
+t.test(high.lgb.data$DUREL_IRr, low.lgb.data$DUREL_IRr)
+t.test(high.lgb.data$DUREL_NORAr, low.lgb.data$DUREL_NORAr)
+t.test(high.lgb.data$durel_ora1, low.lgb.data$durel_ora1)
+t.test(high.lgb.data$pwi_4, low.lgb.data$pwi_4)
+
+ggplot(data, aes(ECR_AVDm)) +
+  geom_bar()
+
+wilcox.test(high.lgb.data$DASS_Dr, low.lgb.data$DASS_Dr)
+
+psych::describe(high.lgb.data$OSAr)
+psych::describe(low.lgb.data$OSAr)
+```
+
+## Multiple Regression
+
+### Test for Multicollinearity
