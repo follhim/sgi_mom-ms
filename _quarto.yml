@@ -8,6 +8,6 @@ website:
     left:
       - href: MOM_manuscript.qmd
         text: Home
-      - MOM_Religiosity_MS.qmd
+      - href: MOM_Religiosity_MS.qmd
         text: More
       
